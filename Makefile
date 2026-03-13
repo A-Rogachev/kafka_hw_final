@@ -9,16 +9,13 @@ start:  ## - Запускает все контейнеры
 	sudo docker compose --env-file env.example up -d
 
 check:  ## - Псевдоним для команды просмотра запущенных контейнеров в docker compose
-	sudo docker compose ps -a
+	sudo docker compose --env-file env.example ps -a
 
 stop:  ## - Удаляет все контейнеры
-	sudo docker compose down -v --remove-orphans
+	sudo docker compose --env-file env.example down -v --remove-orphans
 
 analytics-logs: ## - Показывает логи аналитической системы
-	sudo docker compose logs -f analytics
-
-kafka-topics: ## - Показывает список топиков в Kafka
-	sudo docker exec -it kafka-1 kafka-topics.sh --bootstrap-server localhost:9092 --list
+	sudo docker compose --env-file env.example logs -f analytics
 
 health: ## - Проверяет здоровье всех сервисов
 	@echo "Checking services health..."

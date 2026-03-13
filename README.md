@@ -77,8 +77,7 @@ Producer ──▶ | Kafka Cluster (3 brokers + 3 mirrors) | ──▶ | Faust A
     | <b>make stop</b>|Остановка приложения|удаление контейнеров и томов данных образов |
     | <b>make check</b>|Проверка работы контейнеров| псевдоним для <b>docker compose ps -a</b> |
     | <b>make help</b> | Описание команд | описание команд в Makefile |
-    | <b>make analytics-logs</b> | Просмотр логов системы аналитики | вывод логов в stdout |
-    | <b>make kafka-topics</b> | Список топиков | топики kafka в основном кластере|
+    | <b>make analytics-logs</b> | Просмотр логов системы аналитики | вывод логов в stdout 
     | <b>make health</b> | Проверка статусов сервисов | статус доступности сервисов |
     | <b>make monitor</b> | Адреса для мониторинга | вывод инф-ии о доступе к мониторингу|
 
@@ -112,8 +111,6 @@ Producer ──▶ | Kafka Cluster (3 brokers + 3 mirrors) | ──▶ | Faust A
 
 ### 4. **Schema Registry** (управление схемами)
 Централизованное хранилище схем для сериализации/десериализации сообщений Kafka.
-Используется **confluentinc/cp-schema-registry:7.6.0**, доступен по адресу [http://localhost:8081](http://localhost:8081)
-
 Схемы определены в формате JSON Schema и хранятся в топике `_schemas`:
 - **Product** — схема товаров для `shops_stock_received` и `shops_stock_accepted`
 - **UserAction** — схема действий пользователей для `user_actions`
