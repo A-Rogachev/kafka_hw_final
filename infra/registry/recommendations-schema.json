@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ProductRecommendation",
+    "type": "object",
+    "properties": {
+        "item_id": {
+            "type": "string",
+            "description": "ID of recommended item (category or brand)"
+        },
+        "recommendation_type": {
+            "type": "string",
+            "enum": ["top_category", "top_brand", "trending"],
+            "description": "Type of recommendation"
+        },
+        "recommendation_score": {
+            "type": "number",
+            "description": "Score or ranking of the recommendation"
+        },
+        "product_count": {
+            "type": "integer",
+            "description": "Number of products in this category/brand"
+        },
+        "avg_price": {
+            "type": "number",
+            "description": "Average price of products"
+        },
+        "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when recommendation was generated"
+        },
+        "metadata": {
+            "type": "object",
+            "additionalProperties": true
+        }
+    },
+    "required": ["item_id", "recommendation_type", "recommendation_score", "generated_at"],
+    "additionalProperties": false
+}

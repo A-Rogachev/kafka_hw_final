@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "UserAction",
+    "type": "object",
+    "properties": {
+        "user_id": {
+            "type": "string",
+            "description": "Unique identifier for the user"
+        },
+        "action_type": {
+            "type": "string",
+            "enum": ["view", "search", "click", "add_to_cart", "purchase"],
+            "description": "Type of action performed by the user"
+        },
+        "product_id": {
+            "type": "string",
+            "description": "Product identifier related to the action"
+        },
+        "search_query": {
+            "type": "string",
+            "description": "Search query if action_type is search"
+        },
+        "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the action occurred"
+        },
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "ip_address": {"type": "string"},
+                "user_agent": {"type": "string"},
+                "session_id": {"type": "string"}
+            },
+            "additionalProperties": true
+        }
+    },
+    "required": ["user_id", "action_type", "timestamp"],
+    "additionalProperties": false
+}

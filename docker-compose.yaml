@@ -1,0 +1,371 @@
+include:
+  - docker-compose.connect.yaml
+  - docker-compose.mirror.yaml
+  - docker-compose.monitoring.yaml
+
+x-kafka-common: &kafka-common
+  image: bitnamilegacy/kafka:3.7
+  environment:
+    &kafka-common-env
+    KAFKA_ENABLE_KRAFT: "yes"
+    KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+    KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+    KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+    KAFKA_CFG_DELETE_TOPIC_ENABLE: "false"
+    KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+    KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL,CONTROLLER:SASL_SSL
+    KAFKA_CFG_SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTOREPASSWORD}
+    KAFKA_CFG_SSL_KEY_PASSWORD: ${SSL_KEY_PASSWORD}
+    KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+    KAFKA_CFG_SSL_CLIENT_AUTH: required
+    KAFKA_CFG_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    KAFKA_CFG_SASL_ENABLED_MECHANISMS: PLAIN
+    KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+    KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+    KAFKA_CFG_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+    KAFKA_CFG_SUPER_USERS: User:admin;User:broker
+    KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+    KAFKA_OPTS: "-Djava.security.auth.login.config=/opt/bitnami/kafka/config/kafka_jaas.conf"
+    KAFKA_TLS_TYPE: JKS
+    KAFKA_CFG_SSL_PROTOCOL: TLSv1.2
+  restart: unless-stopped
+  networks:
+    - kafka-hw-final
+
+services:
+  kafka-1:
+    <<: *kafka-common
+    container_name: kafka-1
+    hostname: kafka-1
+    ports:
+      - "127.0.0.1:9791:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.keystore.jks
+      KAFKA_CFG_SSL_TRUSTSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.truststore.jks
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-1
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_KRAFT_CLUSTER_ID: kraft
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9095,2@kafka-2:9095,3@kafka-3:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-1:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    volumes:
+      - kafka_1_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-1.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-1.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+
+  kafka-2:
+    <<: *kafka-common
+    container_name: kafka-2
+    hostname: kafka-2
+    ports:
+      - "127.0.0.1:9792:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.keystore.jks
+      KAFKA_CFG_SSL_TRUSTSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.truststore.jks
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-2
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_KRAFT_CLUSTER_ID: kraft
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9095,2@kafka-2:9095,3@kafka-3:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-2:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    volumes:
+      - kafka_2_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-2.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-2.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+      
+  kafka-3:
+    <<: *kafka-common
+    container_name: kafka-3
+    hostname: kafka-3
+    ports:
+      - "127.0.0.1:9793:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.keystore.jks
+      KAFKA_CFG_SSL_TRUSTSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.truststore.jks
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-3
+      KAFKA_CFG_NODE_ID: 3
+      KAFKA_KRAFT_CLUSTER_ID: kraft
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9095,2@kafka-2:9095,3@kafka-3:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-3:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    volumes:
+      - kafka_3_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-3.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-3.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+
+  init-kafka:
+    image: bitnamilegacy/kafka:3.7
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    env_file:
+      - ./env.example
+    volumes:
+      - ./infra/kafka/init-topic.sh:/entrypoint.sh
+      - ./secrets/clients:/opt/kafka/secrets/clients:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/kafka/secrets/kafka_server_jaas.conf:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    networks:
+      - kafka-hw-final
+
+  producer:
+    build: ./producer
+    container_name: producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SASL_USERNAME: ${PRODUCER_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${PRODUCER_SASL_PASSWORD}
+      KAFKA_SSL_CA_LOCATION: /opt/kafka/secrets/ca-cert.pem
+    depends_on: 
+      init-kafka:
+        condition: service_completed_successfully
+    env_file:
+      - ./env.example
+    volumes:
+      - ./producer/app/:/opt/app
+      - ./secrets/clients/ca-cert.pem:/opt/kafka/secrets/ca-cert.pem:ro
+    networks:
+      - kafka-hw-final
+    command: "python -u /opt/app/main.py"
+
+  faust_app:
+    build: ./faust_app/
+    container_name: faust_app
+    depends_on: 
+      producer:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "6066:6066"
+    env_file:
+      - ./env.example
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SASL_USERNAME: ${FAUST_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${FAUST_SASL_PASSWORD}
+      KAFKA_SSL_CA_LOCATION: /opt/kafka/secrets/ca-cert.pem
+    networks:
+      - kafka-hw-final
+    volumes:
+      - ./faust_app/app/:/opt/app
+      - ./secrets/clients/ca-cert.pem:/opt/kafka/secrets/ca-cert.pem:ro
+    command: faust -A main worker -l info --web-port=6066
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry
+    ports:
+      - '127.0.0.1:8081:8081'
+    depends_on:
+      init-kafka:
+        condition: service_completed_successfully
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: SASL_SSL://kafka-1:9092,SASL_SSL://kafka-2:9092,SASL_SSL://kafka-3:9092
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 2
+      SCHEMA_REGISTRY_DEBUG: "true"
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: SASL_SSL
+      SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM: PLAIN
+      SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${CLIENT_API_SASL_USERNAME}"
+        password="${CLIENT_API_SASL_PASSWORD}";
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/client.truststore.jks
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: ${SCHEMA_REGISTRY_TRUSTSTORE_PASSWORD}
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    volumes:
+      - ./secrets/clients/client.truststore.jks:/etc/kafka/secrets/client.truststore.jks:ro
+    networks:
+      - kafka-hw-final
+    restart: unless-stopped
+
+  init-schema:
+    image: alpine:3.19
+    container_name: init-schema
+    depends_on:
+      schema-registry:
+        condition: service_started
+    volumes:
+      - ./infra/kafka/register-schema.sh:/register-schema.sh
+      - ./infra/registry/product-schema.json:/opt/schemas/product-schema.json
+      - ./infra/registry/user-actions-schema.json:/opt/schemas/user-actions-schema.json
+      - ./infra/registry/recommendations-schema.json:/opt/schemas/recommendations-schema.json
+    entrypoint: ["/bin/sh", "-c", "apk add --no-cache curl jq && /bin/sh /register-schema.sh"]
+    networks:
+      - kafka-hw-final
+
+  analytics:
+    build:
+      context: ./analytics
+    container_name: analytics
+    depends_on:
+      init-kafka-mirror:
+        condition: service_completed_successfully
+      mirror-maker:
+        condition: service_started
+    env_file:
+      - ./env.example
+    environment:
+      KAFKA_ANALYTICS_BOOTSTRAP_SERVERS: kafka-4-mirror:9092,kafka-5-mirror:9092,kafka-6-mirror:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SASL_USERNAME: ${ANALYTICS_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${ANALYTICS_SASL_PASSWORD}
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/secrets/clients/client.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${ANALYTICS_SSL_TRUSTSTORE_PASSWORD}
+    volumes:
+      - ./analytics/app:/opt/app
+      - analytics_checkpoints:/tmp/spark-checkpoints
+      - ./secrets/clients/client.truststore.jks:/opt/kafka/secrets/clients/client.truststore.jks:ro
+    networks:
+      - kafka-hw-final
+    restart: unless-stopped
+    command: "python -u /opt/app/main.py"
+
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:0.29.0
+    container_name: ksqldb-server
+    depends_on:
+      init-kafka:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8088:8088"
+    environment:
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_BOOTSTRAP_SERVERS: kafka-4-mirror:9092,kafka-5-mirror:9092,kafka-6-mirror:9092
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      KSQL_KSQL_STREAMS_REPLICATION_FACTOR: 2
+      KSQL_KSQL_INTERNAL_TOPIC_REPLICAS: 2
+      KSQL_KSQL_STREAMS_NUM_STREAM_THREADS: 2
+      
+      # Kafka client security settings
+      KSQL_SECURITY_PROTOCOL: SASL_SSL
+      KSQL_SASL_MECHANISM: PLAIN
+      KSQL_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${KSQL_SASL_USERNAME}"
+        password="${KSQL_SASL_PASSWORD}";
+      KSQL_SSL_TRUSTSTORE_LOCATION: /etc/ksqldb/client.truststore.jks
+      KSQL_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+      KSQL_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      
+      # Producer settings
+      KSQL_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+      KSQL_PRODUCER_SASL_MECHANISM: PLAIN
+      KSQL_PRODUCER_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${KSQL_SASL_USERNAME}"
+        password="${KSQL_SASL_PASSWORD}";
+      KSQL_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/ksqldb/client.truststore.jks
+      KSQL_PRODUCER_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+      KSQL_PRODUCER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      
+      # Consumer settings
+      KSQL_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+      KSQL_CONSUMER_SASL_MECHANISM: PLAIN
+      KSQL_CONSUMER_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="${KSQL_SASL_USERNAME}"
+        password="${KSQL_SASL_PASSWORD}";
+      KSQL_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/ksqldb/client.truststore.jks
+      KSQL_CONSUMER_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+      KSQL_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    networks:
+      - kafka-hw-final
+    volumes:
+      - ./secrets/clients/client.truststore.jks:/etc/ksqldb/client.truststore.jks:ro
+    restart: unless-stopped
+
+  init-ksqldb:
+    image: confluentinc/ksqldb-cli:latest
+    depends_on:
+      ksqldb-server:
+        condition: service_started
+    container_name: init-ksqldb
+    networks:
+      - kafka-hw-final
+    volumes:
+      - ./infra/ksqldb/init-ksql.sh:/tmp/init-ksql.sh
+    entrypoint: ['/bin/bash', '/tmp/init-ksql.sh']
+
+  client_api:
+    build: ./client_api
+    container_name: client_api
+    ports:
+      - "8000:8000"
+    environment:
+      API_KSQLDB_URL: http://ksqldb-server:8088
+      API_ELASTICSEARCH_URL: http://elasticsearch:9200
+      API_KAFKA_BOOTSTRAP_SERVERS: kafka-4-mirror:9092,kafka-5-mirror:9092,kafka-6-mirror:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SASL_USERNAME: ${CLIENT_API_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${CLIENT_API_SASL_PASSWORD}
+      KAFKA_SSL_CA_LOCATION: /opt/kafka/secrets/ca-cert.pem
+    depends_on:
+      elasticsearch: {condition: service_healthy}
+      ksqldb-server: {condition: service_started}
+      kafka-connect: {condition: service_started}
+      kafka-4-mirror: {condition: service_started}
+      kafka-5-mirror: {condition: service_started}
+      kafka-6-mirror: {condition: service_started}
+    env_file:
+      - ./env.example
+    volumes:
+      - ./client_api/app/:/opt/app
+      - ./secrets/clients/ca-cert.pem:/opt/kafka/secrets/ca-cert.pem:ro
+      - ./secrets/clients/client.truststore.jks:/opt/kafka/secrets/clients/client.truststore.jks:ro
+    networks:
+      - kafka-hw-final
+    command: "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
+
+
+networks:
+  kafka-hw-final:
+    driver: bridge
+
+volumes:
+  kafka_1_data:
+  kafka_2_data:
+  kafka_3_data:
+  kafka_4_data:
+  kafka_5_data:
+  kafka_6_data:
+  es_data:
+  analytics_checkpoints:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

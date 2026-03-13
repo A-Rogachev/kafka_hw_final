@@ -1,0 +1,143 @@
+x-kafka-common: &kafka-common
+  image: bitnamilegacy/kafka:3.7
+  environment:
+    &kafka-common-env
+    KAFKA_ENABLE_KRAFT: "yes"
+    KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+    KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+    KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+    KAFKA_CFG_DELETE_TOPIC_ENABLE: "false"
+    KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+    KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_SSL:SASL_SSL,CONTROLLER:SASL_SSL
+    KAFKA_CFG_SSL_KEYSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+    KAFKA_CFG_SSL_KEY_PASSWORD: ${SSL_KEYPASSWORD}
+    KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+    KAFKA_CFG_SSL_CLIENT_AUTH: required
+    KAFKA_CFG_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+    KAFKA_CFG_SASL_ENABLED_MECHANISMS: PLAIN
+    KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+    KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+    KAFKA_CFG_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+    KAFKA_CFG_SUPER_USERS: User:admin;User:broker
+    KAFKA_CFG_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+    KAFKA_OPTS: "-Djava.security.auth.login.config=/opt/bitnami/kafka/config/kafka_jaas.conf"
+    KAFKA_TLS_TYPE: JKS
+    KAFKA_CFG_SSL_PROTOCOL: TLSv1.2
+  restart: unless-stopped
+  networks:
+    - kafka-hw-final
+
+services:  
+  kafka-4-mirror:
+    <<: *kafka-common
+    container_name: kafka-4-mirror
+    hostname: kafka-4-mirror
+    ports:
+      - "127.0.0.1:9794:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-4-mirror
+      KAFKA_CFG_NODE_ID: 4
+      KAFKA_KRAFT_CLUSTER_ID: mirror
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "4@kafka-4-mirror:9095,5@kafka-5-mirror:9095,6@kafka-6-mirror:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-4-mirror:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+
+    volumes:
+      - kafka_4_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-4-mirror.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-4-mirror.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+
+  kafka-5-mirror:
+    <<: *kafka-common
+    container_name: kafka-5-mirror
+    hostname: kafka-5-mirror
+    ports:
+      - "127.0.0.1:9795:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-5-mirror
+      KAFKA_CFG_NODE_ID: 5
+      KAFKA_KRAFT_CLUSTER_ID: mirror
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "4@kafka-4-mirror:9095,5@kafka-5-mirror:9095,6@kafka-6-mirror:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-5-mirror:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    volumes:
+      - kafka_5_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-5-mirror.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-5-mirror.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+
+  kafka-6-mirror:
+    <<: *kafka-common
+    container_name: kafka-6-mirror
+    hostname: kafka-6-mirror
+    ports:
+      - "127.0.0.1:9796:9999"
+    environment:
+      <<: *kafka-common-env
+      KAFKA_JMX_OPTS: >-
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Djava.rmi.server.hostname=kafka-6-mirror
+      KAFKA_CFG_NODE_ID: 6
+      KAFKA_KRAFT_CLUSTER_ID: mirror
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "4@kafka-4-mirror:9095,5@kafka-5-mirror:9095,6@kafka-6-mirror:9095"
+      KAFKA_CFG_LISTENERS: SASL_SSL://:9092,CONTROLLER://:9095
+      KAFKA_CFG_ADVERTISED_LISTENERS: SASL_SSL://kafka-6-mirror:9092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: SASL_SSL
+    volumes:
+      - kafka_6_data:/bitnami/kafka
+      - ./secrets/brokers/kafka-6-mirror.keystore.jks:/bitnami/kafka/config/certs/kafka.keystore.jks:ro
+      - ./secrets/brokers/kafka-6-mirror.truststore.jks:/bitnami/kafka/config/certs/kafka.truststore.jks:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/bitnami/kafka/config/kafka_jaas.conf:ro
+
+  init-kafka-mirror:
+    image: bitnamilegacy/kafka:3.7
+    depends_on:
+      - kafka-4-mirror
+      - kafka-5-mirror
+      - kafka-6-mirror
+    env_file:
+      - ./env.example
+    volumes:
+      - ./infra/kafka/init-topic-mirror.sh:/entrypoint.sh
+      - ./secrets/clients:/opt/kafka/secrets/clients:ro
+      - ./secrets/kafka_server_jaas.conf:/opt/kafka/secrets/kafka_server_jaas.conf:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    networks:
+      - kafka-hw-final
+
+  mirror-maker:
+    image: bitnamilegacy/kafka:3.7
+    container_name: mirror-maker
+    depends_on:
+      - kafka-1
+      - kafka-4-mirror
+    volumes:
+      - ./infra/kafka/mm2.properties:/opt/bitnami/kafka/config/mm2.properties
+      - ./secrets/clients:/opt/bitnami/kafka/secrets/clients:ro
+    command: >
+      /opt/bitnami/kafka/bin/connect-mirror-maker.sh
+      /opt/bitnami/kafka/config/mm2.properties
+    networks:
+      - kafka-hw-final

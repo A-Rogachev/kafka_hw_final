@@ -1,0 +1,124 @@
+services:  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - kafka-hw-final
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3   
+
+  init-elasticsearch:
+    image: alpine:3.19
+    container_name: init-elasticsearch
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./infra/elasticsearch/init_indices.sh:/tmp/init_indices.sh
+      - ./infra/elasticsearch/index_template.json:/tmp/index_template.json
+    entrypoint: ["/bin/sh"]
+    command:
+      - -c
+      - |
+        apk add --no-cache curl jq
+        sh /tmp/init_indices.sh
+    networks:
+      - kafka-hw-final
+
+  kafka-connect:
+    build:
+      context: ./infra/kafka_connect
+      dockerfile: Dockerfile
+    container_name: kafka-connect
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "kafka-connect-group"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 2
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 2
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 2
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+
+      CONNECT_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_SASL_MECHANISM: PLAIN
+      CONNECT_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required username="${CLIENT_API_SASL_USERNAME}" password="${CLIENT_API_SASL_PASSWORD}";
+      CONNECT_SSL_TRUSTSTORE_LOCATION: /opt/kafka/secrets/clients/client.truststore.jks
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
+      # Producer settings
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required username="${CLIENT_API_SASL_USERNAME}" password="${CLIENT_API_SASL_PASSWORD}";
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /opt/kafka/secrets/clients/client.truststore.jks
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+      # Consumer settings
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.plain.PlainLoginModule required username="${CLIENT_API_SASL_USERNAME}" password="${CLIENT_API_SASL_PASSWORD}";
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /opt/kafka/secrets/clients/client.truststore.jks
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: ${SSL_TRUSTSTOREPASSWORD}
+    networks:
+      - kafka-hw-final
+    volumes:
+      - ./secrets/clients/ca-cert.pem:/opt/kafka/secrets/clients/ca-cert.pem:ro
+      - ./secrets/clients/client.truststore.jks:/opt/kafka/secrets/clients/client.truststore.jks:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8083/ > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
+
+  init-kafka-connect:
+    image: curlimages/curl:latest
+    depends_on:
+      - kafka-connect
+    networks:
+      - kafka-hw-final
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for Kafka Connect API to be ready..."
+        until curl -s http://kafka-connect:8083/connectors | grep -q '\['; do
+          echo "Kafka Connect API not ready yet, waiting..."
+          sleep 5
+        done
+        echo "Kafka Connect API is ready!"
+        curl -i -X POST -H 'Content-Type: application/json' \
+          http://kafka-connect:8083/connectors \
+          -d @/tmp/connector-config.json
+        echo 'Connector registration complete!'
+    volumes:
+      - ./infra/kafka_connect/connector-config.json:/tmp/connector-config.json
+

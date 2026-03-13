@@ -1,0 +1,32 @@
+groups:
+- name: kafka_alerts
+  rules:
+  - alert: KafkaBrokerDown
+    expr: jmx_scrape_error{job="kafka"} == 1
+    for: 1m
+    labels:
+      severity: critical
+      service: kafka
+    annotations:
+      summary: "Kafka broker {{ $labels.instance }} is down"
+      description: "JMX exporter cannot connect to Kafka broker {{ $labels.instance }} for more than 1 minute. Broker is likely down!"
+      
+  - alert: KafkaBrokerDownCritical
+    expr: count(jmx_scrape_error{job="kafka"} == 1) >= 2
+    for: 30s
+    labels:
+      severity: critical
+      service: kafka
+    annotations:
+      summary: "Multiple Kafka brokers are down"
+      description: "{{ $value }} Kafka brokers are currently down. Cluster stability at risk!"
+      
+  - alert: KafkaJMXExporterDown
+    expr: up{job="kafka"} == 0
+    for: 2m
+    labels:
+      severity: warning
+      service: monitoring
+    annotations:
+      summary: "Kafka JMX Exporter {{ $labels.instance }} is down"
+      description: "Cannot collect metrics from {{ $labels.instance }} for more than 2 minutes. JMX Exporter container may be down."

@@ -1,0 +1,94 @@
+{
+  "index_patterns": ["shops_stock_*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1,
+      "refresh_interval": "5s"
+    },
+    "mappings": {
+      "properties": {
+        "product_id": {
+          "type": "keyword"
+        },
+        "name": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "description": {
+          "type": "text"
+        },
+        "price": {
+          "properties": {
+            "amount": {
+              "type": "double"
+            },
+            "currency": {
+              "type": "keyword"
+            }
+          }
+        },
+        "category": {
+          "type": "keyword"
+        },
+        "brand": {
+          "type": "keyword"
+        },
+        "stock": {
+          "properties": {
+            "available": {
+              "type": "integer"
+            },
+            "reserved": {
+              "type": "integer"
+            }
+          }
+        },
+        "sku": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword"
+        },
+        "images": {
+          "type": "nested",
+          "properties": {
+            "url": {
+              "type": "keyword"
+            },
+            "alt": {
+              "type": "text"
+            }
+          }
+        },
+        "specifications": {
+          "properties": {
+            "weight": {
+              "type": "keyword"
+            },
+            "dimensions": {
+              "type": "keyword"
+            }
+          }
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "index": {
+          "type": "keyword"
+        },
+        "store_id": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}
